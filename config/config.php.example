@@ -1,0 +1,63 @@
+<?php
+/**
+ * Ayisigimakademi - Moodle config.php Şablonu
+ *
+ * Moodle 5.x'te config.php repo KÖKüne yerleştirilir: moodle/config.php
+ * public/config.php otomatik olarak bu dosyayı yükler.
+ *
+ * Bu dosyayı moodle/config.php olarak kopyalayın ve gerçek değerleri doldurun.
+ * ASLA gerçek şifre içeren config.php dosyasını git'e eklemeyin.
+ *
+ * Yerel geliştirme için: docker/.env dosyasındaki değerleri kullanın.
+ * Üretim için: Hostinger hPanel'deki MySQL bilgilerini kullanın.
+ */
+
+unset($CFG);
+global $CFG;
+$CFG = new stdClass();
+
+// -----------------------------------------------------------------------
+// Veritabanı Bağlantısı
+// -----------------------------------------------------------------------
+$CFG->dbtype    = 'mysqli';
+$CFG->dblibrary = 'native';
+$CFG->dbhost    = 'DB_HOST';           // Yerelde: 'db' | Hostinger'da: 'localhost'
+$CFG->dbname    = 'DB_NAME';           // Örnek: 'moodle'
+$CFG->dbuser    = 'DB_USER';           // Örnek: 'moodleuser'
+$CFG->dbpass    = 'DB_PASS';           // Güçlü bir şifre kullanın
+$CFG->prefix    = 'mdl_';
+
+$CFG->dboptions = [
+    'dbcollation' => 'utf8mb4_unicode_ci',
+];
+
+// -----------------------------------------------------------------------
+// Site URL ve Veri Dizini
+// -----------------------------------------------------------------------
+$CFG->wwwroot   = 'SITE_URL';          // Yerelde: 'http://portal.localhost'
+                                        // Üretimde: 'https://portal.ayisigimakademi.com'
+$CFG->dataroot  = 'MOODLE_DATAROOT';   // Yerelde: '/var/moodledata'
+                                        // Üretimde: web root DIŞINDA bir yol
+$CFG->directorypermissions = 02777;
+
+// -----------------------------------------------------------------------
+// Admin Dizin Adı (güvenlik için değiştirilebilir)
+// -----------------------------------------------------------------------
+$CFG->admin = 'admin';
+
+// -----------------------------------------------------------------------
+// Performans & Önbellek (isteğe bağlı)
+// -----------------------------------------------------------------------
+// $CFG->cachetype = 'file';
+// $CFG->session_handler_class = '\core\session\database';
+
+// -----------------------------------------------------------------------
+// Geliştirme Modu (SADECE yerelde, üretimde false yapın)
+// -----------------------------------------------------------------------
+// @error_reporting(E_ALL | E_STRICT);
+// @ini_set('display_errors', '1');
+// $CFG->debug = 32767;
+// $CFG->debugdisplay = 1;
+
+// Moodle 5.x: setup.php public/ altında
+require_once(__DIR__ . '/public/lib/setup.php');

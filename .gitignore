@@ -1,0 +1,53 @@
+# ============================================================
+# Ayisigimakademi - .gitignore
+# ============================================================
+
+# --- Ortam & Gizli Bilgiler ---
+.env
+.env.production
+*.env.local
+
+# --- Moodle veri dizini (öğrenci dosyaları, önbellek, oturumlar) ---
+moodledata/
+moodle/moodledata/
+
+# --- Moodle config (üretim bilgileri içerir) ---
+moodle/config.php
+config/config.php
+config/config.production.php
+
+# --- Docker yerel veri hacimleri ---
+docker/volumes/
+docker/mysql-data/
+docker/moodledata/
+
+# --- Geçici & önbellek dosyaları ---
+*.log
+*.cache
+*.tmp
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# --- PHP ---
+/vendor/
+composer.lock
+
+# --- Moodle temp/cache dizinleri ---
+moodle/cache/
+moodle/localcache/
+moodle/temp/
+moodle/sessions/
+
+# --- DB tam dump (büyük dosyalar; migration scriptleri her zaman git'te) ---
+# db/schema_dump.sql  # Aktif etmek için başındaki # işaretini kaldırın
+
+# --- IDE / Editor ---
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+hostinger_dump.sql.gz
+archive/

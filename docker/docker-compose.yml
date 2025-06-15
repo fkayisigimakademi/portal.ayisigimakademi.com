@@ -1,0 +1,144 @@
+# .env dosyası docker/ dizininin üst klasöründe (portal.ayisigimakademi/.env)
+# Kullanım: portal.ayisigimakademi/ dizininden çalıştırın:
+#   docker compose -f docker/docker-compose.yml --env-file .env up -d
+
+services:
+
+  # ----------------------------------------------------------------
+  # MySQL 8 - Veritabanı
+  # ----------------------------------------------------------------
+  db:
+    image: mysql:8.4
+    container_name: ayisigimakademi_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MOODLE_DB_NAME}
+      MYSQL_USER: ${MOODLE_DB_USER}
+      MYSQL_PASSWORD: ${MOODLE_DB_PASS}
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --innodb-file-per-table=1
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ../db/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "3306:3306"
+    networks:
+      - moodle_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ----------------------------------------------------------------
+  # Moodle PHP + Apache (resmi moodlehq imajı - tüm eklentiler dahil)
+  # Moodle 5.x: web root public/, config.php repo root'ta
+  # ----------------------------------------------------------------
+  moodle:
+    build:
+      context: .
+      dockerfile: Dockerfile.php
+    container_name: ayisigimakademi_moodle
+    restart: unless-stopped
+    environment:
+      MOODLE_DB_TYPE: ${MOODLE_DB_TYPE}
+      MOODLE_DB_HOST: db
+      MOODLE_DB_PORT: ${MOODLE_DB_PORT}
+      MOODLE_DB_NAME: ${MOODLE_DB_NAME}
+      MOODLE_DB_USER: ${MOODLE_DB_USER}
+      MOODLE_DB_PASS: ${MOODLE_DB_PASS}
+      MOODLE_WWWROOT: ${MOODLE_WWWROOT}
+      MOODLE_DATAROOT: ${MOODLE_DATAROOT}
+      APACHE_RUN_USER: www-data
+      APACHE_RUN_GROUP: www-data
+    volumes:
+      # Moodle 5.x repo root (config.php burada olacak)
+      - ../moodle:/var/www/moodle:rw
+      # Özel eklentiler public/ altına mount
+      - ../moodle-custom/plugins/mod_googlemeet:/var/www/moodle/public/mod/googlemeet:ro
+      # Boost Union tema (Hostinger'dan senkronize edilmiş sürüm)
+      - ../moodle-custom/themes/boost_union:/var/www/moodle/public/theme/boost_union:ro
+      # Moodle veri dizini (öğrenci dosyaları, oturumlar)
+      - moodledata:/var/moodledata
+      # PHP yapılandırması
+      - ./php/php.ini:/usr/local/etc/php/conf.d/99-moodle-custom.ini:ro
+    ports:
+      - "80:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - moodle_net
+
+  # ----------------------------------------------------------------
+  # Moodle Cron - Her dakika Moodle görevlerini çalıştırır
+  # ----------------------------------------------------------------
+  moodle_cron:
+    build:
+      context: .
+      dockerfile: Dockerfile.php
+    container_name: ayisigimakademi_cron
+    restart: unless-stopped
+    command: >
+      bash -c "while true; do
+        php /var/www/moodle/admin/cli/cron.php >> /var/log/moodle_cron.log 2>&1;
+        sleep 60;
+      done"
+    environment:
+      MOODLE_DB_TYPE: ${MOODLE_DB_TYPE}
+      MOODLE_DB_HOST: db
+      MOODLE_DB_PORT: ${MOODLE_DB_PORT}
+      MOODLE_DB_NAME: ${MOODLE_DB_NAME}
+      MOODLE_DB_USER: ${MOODLE_DB_USER}
+      MOODLE_DB_PASS: ${MOODLE_DB_PASS}
+      MOODLE_WWWROOT: ${MOODLE_WWWROOT}
+      MOODLE_DATAROOT: ${MOODLE_DATAROOT}
+    volumes:
+      - ../moodle:/var/www/moodle:rw
+      - ../moodle-custom/plugins/mod_googlemeet:/var/www/moodle/public/mod/googlemeet:ro
+      - ../moodle-custom/themes/boost_union:/var/www/moodle/public/theme/boost_union:ro
+      - moodledata:/var/moodledata
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - moodle_net
+
+  # ----------------------------------------------------------------
+  # phpMyAdmin - Yerel DB yönetimi
+  # ----------------------------------------------------------------
+  phpmyadmin:
+    image: phpmyadmin:5.2
+    container_name: ayisigimakademi_pma
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      UPLOAD_LIMIT: 256M
+    ports:
+      - "${PMA_PORT:-8080}:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - moodle_net
+
+# ----------------------------------------------------------------
+# Volumes
+# ----------------------------------------------------------------
+volumes:
+  mysql_data:
+    driver: local
+  moodledata:
+    driver: local
+
+# ----------------------------------------------------------------
+# Network
+# ----------------------------------------------------------------
+networks:
+  moodle_net:
+    driver: bridge
